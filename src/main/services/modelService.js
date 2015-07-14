@@ -52,15 +52,36 @@ angular.module('chatty')
                     updateLineClass(fixedPost, thread)
                     updateModTagClass(fixedPost)
                     fixedPost.parentAuthor = parent.author
+                    fixedPost.depth = parent.depth + 1
 
                     thread.replyCount++
 
-                    parent.posts.push(fixedPost)
+                    if (parent.id === thread.id) {
+                        thread.posts.push(fixedPost)
+                    } else {
+                        var lastParentReply = findLastInChain(thread, parent.id, 0)
+                        if (lastParentReply > 0) {
+                            thread.posts.splice(lastParentReply + 1, 0, fixedPost)
+                        } else {
+                            var indexOfParent = _.indexOf(thread.posts, parent)
+                            thread.posts.splice(indexOfParent + 1, 0, fixedPost)
+                        }
+                    }
+
+                    //add to master post array
                     posts[fixedPost.id] = fixedPost
 
                     return {thread: thread, parent: parent, post: fixedPost}
                 }
             }
+        }
+
+        function findLastInChain(thread, parentId, lastIndex) {
+            var index = _.findLastIndex(thread.posts, { parentId: parentId })
+            if (index > 0) {
+                return findLastInChain(thread, thread.posts[index].id, index)
+            }
+            return lastIndex
         }
 
         modelService.getPost = function(id) {
@@ -116,11 +137,11 @@ angular.module('chatty')
                 thread.id = rootPost.id
                 thread.threadId = rootPost.id
                 thread.parentId = 0
+                thread.depth = 0
                 thread.author = rootPost.author
                 thread.date = rootPost.date
                 thread.category = rootPost.category
                 thread.body = rootPost.body
-                thread.lols = rootPost.lols
             }
             thread.visible = true
             thread.lastPostId = thread.id
@@ -152,9 +173,6 @@ angular.module('chatty')
             //parse body for extra features
             post.body = bodyTransformService.parse(post)
 
-            //create sub-post container
-            post.posts = post.posts || []
-
             //add user class highlight
             if (post.author.toLowerCase() === settingsService.getUsername().toLowerCase()) {
                 post.userClass = 'user_me'
@@ -176,11 +194,13 @@ angular.module('chatty')
             thread.recent.push(post)
 
             if (thread.recent.length > 10) {
-                thread.recent.shift()
+                var oldPost = thread.recent.shift()
+                $rootScope.$broadcast('post-line-highlight-' + oldPost.id)
             }
 
             _.each(thread.recent, function(recentPost, index) {
                 recentPost.lineClass = 'oneline' + (9 - index)
+                $rootScope.$broadcast('post-line-highlight-' + recentPost.id)
             })
         }
 

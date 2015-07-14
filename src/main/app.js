@@ -37,6 +37,15 @@ angular.module('chatty', ['ngRoute', 'ngSanitize', 'LocalStorageModule'])
                     }
                 }
             })
+            .when('/messages', {
+                templateUrl: 'messages/messages.html',
+                controller: 'messagesCtrl',
+                resolve: {
+                    load: function() {
+                        //load stuff here
+                    }
+                }
+            })
             .otherwise({
                 redirectTo: '/chatty'
             })

@@ -26,6 +26,7 @@ angular.module('chatty')
 
         modelService.addThread = function(post, event) {
             var thread = fixThread(post)
+            updateDepth(thread)
             if (event === true) {
                 newThreads.push(thread)
             } else {
@@ -214,6 +215,46 @@ angular.module('chatty')
             } else {
                 delete post.tagClass
             }
+        }
+
+        function updateDepth(thread) {
+            var arr = thread.posts
+            var max = thread.posts.length - 1
+            var last = 0
+            var conts = [0]
+            _.eachRight(arr, function(post, i) {
+                if (i === max) {
+                    post.depthImages = ['l']
+                } else if (i === 0 || post.depth === 1) {
+                    post.depthImages = ['t']
+                } else if (post.depth === last) {
+                    post.depthImages = _.fill(_.range(post.depth - 1), 'o')
+                    post.depthImages[post.depthImages.length] = 't'
+                } else if (post.depth > last) {
+                    post.depthImages = _.fill(_.range(post.depth - 1), 'o')
+                    post.depthImages[post.depthImages.length] = 'l'
+                } else if (post.depth < last && _.contains(conts, post.depth - 1)) {
+                    post.depthImages = _.fill(_.range(post.depth - 1), 'o')
+                    post.depthImages[post.depthImages.length] = 't'
+                } else {
+                    post.depthImages = _.fill(_.range(post.depth - 1), 'o')
+                    post.depthImages[post.depthImages.length] = 'l'
+                }
+
+                if (post.depth === 1) {
+                    conts = [0]
+                } else if (post.depth > last) {
+                    conts.push(last - 1)
+                }
+
+                _.each(conts, function(cont) {
+                    if (post.depth - 1 > cont) {
+                        post.depthImages[cont] = 'i'
+                    }
+                })
+
+                last = post.depth
+            })
         }
 
         function updateExpiration(thread) {
